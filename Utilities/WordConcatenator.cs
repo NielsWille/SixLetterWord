@@ -1,63 +1,54 @@
-﻿namespace SixLetterWord.Utilities
+namespace SixLetterWord.Utilities
 {
     public class WordConcatenator
     {
         private readonly HashSet<string> _words;
+        private readonly List<string> _wordList;
 
         public WordConcatenator(IEnumerable<string> words)
         {
             _words = new HashSet<string>(words.Where(w => w.Length <= 6));
+            _wordList = _words.ToList();
         }
 
-        public List<string> FindCombinations(int maxLength = 6)
+        public List<string> FindCombinations(int maxLength = 6, int maxWordsInCombination = 3)
         {
             var results = new List<string>();
-            var wordList = _words.ToList();
+            var buffer = new List<string>();
 
-            foreach (var combination in GenerateCombinations(wordList, maxLength))
+            for (int i = 0; i < _wordList.Count; i++)
             {
-                string combined = string.Concat(combination);
-                if (combined.Length == maxLength && _words.Contains(combined))
-                {
-                    results.Add($"{string.Join("+", combination)}={combined}");
-                }
+                Backtrack(i, buffer, 0, maxLength, maxWordsInCombination, results);
             }
 
             return results;
         }
 
-        private IEnumerable<List<string>> GenerateCombinations(List<string> words, int maxLength)
+        private void Backtrack(int index, List<string> currentWords, int currentLength, int maxLength, int maxWords, List<string> results)
         {
-            for (int r = 2; r <= words.Count; r++)
+            var word = _wordList[index];
+            int newLength = currentLength + word.Length;
+
+            if (newLength > maxLength || currentWords.Count + 1 > maxWords)
+                return;
+
+            currentWords.Add(word);
+
+            if (newLength == maxLength)
             {
-                foreach (var combo in CombinationsRecursive(words, r, maxLength))
+                var combined = string.Concat(currentWords);
+                if (_words.Contains(combined))
                 {
-                    yield return combo;
+                    results.Add($"{string.Join("+", currentWords)}={combined}");
                 }
             }
-        }
 
-        private IEnumerable<List<string>> CombinationsRecursive(List<string> words, int length, int maxLen, List<string> current = null, int start = 0)
-        {
-            current ??= [];
-
-            if (length == 0)
+            for (int next = index + 1; next < _wordList.Count; next++)
             {
-                if (current.Sum(w => w.Length) <= maxLen)
-                    yield return new List<string>(current);
-                yield break;
+                Backtrack(next, currentWords, newLength, maxLength, maxWords, results);
             }
 
-            for (int i = start; i < words.Count; i++)
-            {
-                current.Add(words[i]);
-                if (current.Sum(w => w.Length) <= maxLen)
-                {
-                    foreach (var combo in CombinationsRecursive(words, length - 1, maxLen, current, i + 1))
-                        yield return combo;
-                }
-                current.RemoveAt(current.Count - 1);
-            }
+            currentWords.RemoveAt(currentWords.Count - 1);
         }
     }
 }
